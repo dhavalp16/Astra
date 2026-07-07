@@ -1,0 +1,2712 @@
+30 Second Summary
+
+Every photorealistic image you see in movies, games, and product renders starts with the same idea: tracing the path of light as it bounces off objects. Ray tracing is the algorithm that makes this possible, and understanding it unlocks the entire world of graphics programming.
+
+In this project, you will build a CPU-based ray tracer from scratch in C++ with zero external dependencies. Your program will cast rays from a virtual camera, test for intersections with 3D spheres, and output a rendered image showing objects colored by their surface normals against a sky gradient.
+
+What You'll Build
+
+A complete ray tracing engine written in C++ that renders a 3D scene of spheres to a PPM image file, using vector math, ray-sphere intersection, and polymorphic object hierarchies.
+
+By the end of this project, you'll have:
+
+
+
+
+
+A reusable vec3 math library with vector operations (dot product, cross product, normalize) that forms the foundation for all future graphics projects.
+
+
+
+A ray casting system with a virtual camera and viewport that fires rays into a 3D scene and computes pixel colors based on what they hit.
+
+
+
+A modular object system using C++ inheritance and virtual functions, rendering multiple spheres with surface-normal coloring to a 400x225 pixel image.
+
+
+
+Secret Mission: Add physically-based diffuse lighting with recursive ray bouncing, antialiasing, and gamma correction for photorealistic matte shading.
+
+
+
+No prior C++ or math experience is required. This guide teaches the vector math and C++ concepts as you encounter them.
+
+You will need Visual Studio with the Desktop development with C++ workload installed.
+
+
+
+
+
+
+
+
+
+Before you can trace rays through a 3D scene, you need a way to actually see the output. A ray tracer renders images pixel by pixel, so the first milestone is confirming your entire pipeline works: code compiles, program runs, and an image file appears.
+
+In this step, you will create a Visual Studio C++ project, write a simple gradient renderer, and produce your first image file using the PPM image format.
+
+In this step, get ready to:
+
+
+
+Create a C++ Console App project in Visual Studio.
+
+Write a PPM gradient image renderer using nested loops.
+
+Build and run the program to produce your first image file.
+
+
+
+
+
+Create a new C++ Console App project
+
+Visual Studio's Console App template gives you a ready-to-build C++ project with a single source file. You will create a project named RayTracer and prepare the source file for your rendering code.
+
+
+
+
+
+In Visual Studio, click File in the menu bar.
+
+
+
+Click New, then Project.
+
+
+
+In the Create a new project dialog, set the Language dropdown to C++.
+
+
+
+Set the Platform dropdown to Windows.
+
+
+
+Select the Console App template (it has C++, Windows, and Console tags).
+
+
+
+Click Next.
+
+
+
+In the Project name field, type RayTracer.
+
+
+
+Click Create.
+
+Visual Studio creates the project and opens a default source file named RayTracer.cpp with Hello World code.
+
+
+
+
+
+In Solution Explorer on the right, right-click RayTracer.cpp under Source Files.
+
+
+
+Click Rename and change the name to main.cpp.
+
+
+
+Select all the default Hello World code inside main.cpp and delete it so the file is empty.
+
+
+
+The project will grow to include multiple header files (vec3.h, ray.h, sphere.h). Naming the main source file main.cpp makes it obvious which file contains the program entry point.
+
+Write the PPM gradient image code
+
+The PPM P3 format is a simple text-based image format. It starts with a header (P3, then width and height, then max color value 255), followed by one RGB integer triplet per pixel.
+
+Your renderer will loop over every pixel and compute a color gradient: red increases left-to-right and green increases top-to-bottom.
+
+
+
+
+
+Paste the following code into your empty main.cpp file:
+
+```cpp
+#include <iostream>
+
+int main() {
+    // Image dimensions
+    int image_width = 256;
+    int image_height = 256;
+
+    // PPM header: format, dimensions, max color value
+    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+    // Write each pixel as an RGB triplet
+    for (int j = 0; j < image_height; j++) {
+        for (int i = 0; i < image_width; i++) {
+            // Compute color as a fraction of position
+            auto r = double(i) / (image_width - 1);
+            auto g = double(j) / (image_height - 1);
+            auto b = 0.0;
+
+            // Convert [0,1] floats to [0,255] integers
+            int ir = int(255.999 * r);
+            int ig = int(255.999 * g);
+            int ib = int(255.999 * b);
+
+            std::cout << ir << ' ' << ig << ' ' << ib << '\n';
+        }
+    }
+}
+```
+
+
+
+
+
+
+
+The PPM header (P3, width, height, 255) tells image viewers how to interpret the data that follows.
+
+
+
+The nested for loops iterate over every pixel. j is the row (top to bottom) and i is the column (left to right).
+
+
+
+Each color channel is a fraction of the pixel's position, so r increases across the width and g increases down the height.
+
+
+
+Multiplying by 255.999 and casting to int converts the 0-to-1 float range into the 0-to-255 integer range that PPM expects.
+
+
+
+
+
+Save main.cpp with Ctrl+S.
+
+
+
+Build the project by clicking Build in the menu bar, then Build Solution.
+
+
+
+Check the Output window at the bottom of Visual Studio. You should see a line ending with Build: 1 succeeded.
+
+
+
+
+
+
+
+Check for missing semicolons or unmatched braces. The Error List window at the bottom shows the exact line number.
+
+
+
+Make sure you deleted all of the original Hello World code before pasting.
+
+Why won't my project build in Visual Studio?
+
+Run the program and view your first image
+
+The program prints the PPM image data to standard output. To capture it as a file, you will redirect the output from a Command Prompt.
+
+
+
+
+
+In the Output window, find the line that shows RayTracer.exe followed by a file path (this is your build output folder inside x64\Debug\).
+
+
+
+Press the Windows key to open your search bar.
+
+
+
+Type cmd and press Enter to open Command Prompt.
+
+
+
+Navigate to your build output folder by running this command:
+
+```bash
+cd path to your build output folder, e.g. C:UsersYourNamesourcereposRayTracerx64Debug
+```
+
+
+
+
+
+Generate the image file by running this command:
+
+```bash
+RayTracer.exe > image.ppm
+```
+
+
+
+The > symbol redirects everything the program prints to std::cout into a file called image.ppm instead of displaying it in the terminal.
+
+
+
+
+
+Open image.ppm in a PPM viewer. You can use an online viewer (search for "PPM image viewer online") or a tool like IrfanView.
+
+
+
+You should see a 256x256 pixel gradient. Black in the top-left corner, red in the top-right, green in the bottom-left, and yellow in the bottom-right.
+
+
+
+
+
+
+
+Make sure you ran the command from the correct folder where RayTracer.exe lives. Run dir to confirm the file is there.
+
+
+
+Confirm image.ppm is not 0 bytes. If it is, the build may not have succeeded or you are in the wrong directory.
+
+
+
+Some text editors add encoding (UTF-8 BOM). Open image.ppm in Notepad and check the first line says P3 with nothing before it.
+
+Why does my PPM image look wrong or fail to open?
+
+
+
+
+
+Great. Double check you have saved main.cpp and the build succeeded before moving on.
+
+
+
+Here is the complete main.cpp for this step:
+
+```cpp
+#include <iostream>
+
+int main() {
+    int image_width = 256;
+    int image_height = 256;
+
+    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+    for (int j = 0; j < image_height; j++) {
+        for (int i = 0; i < image_width; i++) {
+            auto r = double(i) / (image_width - 1);
+            auto g = double(j) / (image_height - 1);
+            auto b = 0.0;
+
+            int ir = int(255.999 * r);
+            int ig = int(255.999 * g);
+            int ib = int(255.999 * b);
+
+            std::cout << ir << ' ' << ig << ' ' << ib << '\n';
+        }
+    }
+}
+```
+
+
+
+
+
+Your rendering pipeline is working end to end. Next up, you will build a reusable vector math library that forms the foundation of every calculation in your ray tracer.
+
+
+
+You have a working renderer that outputs a PPM gradient image. The math inside the render loop is simple right now, but ray tracing requires constant 3D vector operations: adding directions, computing dot products, normalizing vectors.
+
+To keep future code readable and reusable, you will build a dedicated vec3 math library in a header file. Every graphics program needs one, and yours will power every calculation from here on out.
+
+In this step, get ready to:
+
+
+
+Build a vec3 class with vector storage, accessors, and operator overloads.
+
+Add free-function arithmetic operators and math functions (dot product, cross product, unit vector).
+
+Create a color utility header and refactor your renderer to use the new library.
+
+
+
+
+
+Create the vec3 header file
+
+A 3D vector stores three components (x, y, z). Points in space, directions, and colors all share this shape. By defining a single vec3 class, you get one data type that handles all three use cases.
+
+
+
+
+
+In Visual Studio, click Project in the menu bar.
+
+
+
+Click Add New Item.
+
+
+
+In the Add New Item dialog, select Header File (.h).
+
+
+
+Change the Name field to vec3.h and click Add.
+
+Visual Studio creates an empty header file and opens it in the editor.
+
+
+
+
+
+Delete anything Visual Studio generated in vec3.h and replace it with the following code:
+
+```cpp
+#ifndef VEC3_H
+#define VEC3_H
+
+#include <cmath>
+#include <iostream>
+
+class vec3 {
+  public:
+    double e[3];
+
+    // Default constructor: all components zero
+    vec3() : e{0,0,0} {}
+    // Parameterized constructor
+    vec3(double e0, double e1, double e2) : e{e0, e1, e2} {}
+
+    // Named accessors for readability
+    double x() const { return e[0]; }
+    double y() const { return e[1]; }
+    double z() const { return e[2]; }
+
+    // Negation: flip all components
+    vec3 operator-() const { return vec3(-e[0], -e[1], -e[2]); }
+    // Index access (read-only and writable)
+    double operator[](int i) const { return e[i]; }
+    double& operator[](int i) { return e[i]; }
+
+    // Add another vector to this one
+    vec3& operator+=(const vec3& v) {
+        e[0] += v.e[0];
+        e[1] += v.e[1];
+        e[2] += v.e[2];
+        return *this;
+    }
+
+    // Scale this vector by a scalar
+    vec3& operator*=(double t) {
+        e[0] *= t;
+        e[1] *= t;
+        e[2] *= t;
+        return *this;
+    }
+
+    // Divide by reusing multiply
+    vec3& operator/=(double t) {
+        return *this *= 1/t;
+    }
+
+    // Euclidean length
+    double length() const {
+        return std::sqrt(length_squared());
+    }
+
+    // Squared length (avoids expensive sqrt when comparing)
+    double length_squared() const {
+        return e[0]*e[0] + e[1]*e[1] + e[2]*e[2];
+    }
+};
+
+// Type aliases so code reads naturally in different contexts
+using point3 = vec3;
+using color = vec3;
+
+#endif
+```
+
+
+
+The vec3 class stores three doubles in an array. The accessors x(), y(), z() make the code read like natural 3D math instead of raw array indices.
+
+The operator overloads (+=, *=, /=) let you write v += other instead of manually adding each component. The type aliases point3 and color are just vec3 under the hood, but they make your intent clear when reading code later.
+
+
+
+
+
+Save vec3.h with Ctrl+S.
+
+
+
+Build the project by clicking Build > Build Solution in the menu bar. You should see "Build succeeded" in the Output window with zero errors.
+
+
+
+Check that the first line of vec3.h is #ifndef VEC3_H and the last line is #endif. Missing include guards cause duplicate definition errors.
+
+Also confirm you included <cmath> and <iostream> at the top. The std::sqrt function lives in <cmath>.
+
+help me fix my vec3.h build errors
+
+Add vector arithmetic and math functions
+
+The class operators only modify a vector in place. To write expressions like a + b or 2.0 * v that return new vectors, you need free-function operator overloads declared outside the class.
+
+
+
+
+
+In vec3.h, find the line #endif at the bottom of the file. Add the following operator overloads directly above it:
+
+```cpp
+// Stream output for debugging
+inline std::ostream& operator<<(std::ostream& out, const vec3& v) {
+    return out << v.e[0] << ' ' << v.e[1] << ' ' << v.e[2];
+}
+
+// Arithmetic: produce new vectors from two inputs
+inline vec3 operator+(const vec3& u, const vec3& v) {
+    return vec3(u.e[0] + v.e[0], u.e[1] + v.e[1], u.e[2] + v.e[2]);
+}
+
+inline vec3 operator-(const vec3& u, const vec3& v) {
+    return vec3(u.e[0] - v.e[0], u.e[1] - v.e[1], u.e[2] - v.e[2]);
+}
+
+// Component-wise multiply (used for color blending)
+inline vec3 operator*(const vec3& u, const vec3& v) {
+    return vec3(u.e[0] * v.e[0], u.e[1] * v.e[1], u.e[2] * v.e[2]);
+}
+
+// Scalar multiply (both orderings so 2.0*v and v*2.0 work)
+inline vec3 operator*(double t, const vec3& v) {
+    return vec3(t*v.e[0], t*v.e[1], t*v.e[2]);
+}
+
+inline vec3 operator*(const vec3& v, double t) {
+    return t * v;
+}
+
+// Scalar division
+inline vec3 operator/(const vec3& v, double t) {
+    return (1/t) * v;
+}
+```
+
+
+
+C++ requires you to define both double * vec3 and vec3 * double separately. Without both, writing v * 2.0 would compile but 2.0 * v would not. The second version just calls the first, so no logic is duplicated.
+
+
+
+
+
+Below the operator overloads you just added (still above #endif), add the three essential math functions:
+
+```cpp
+// Dot product: measures how aligned two vectors are
+inline double dot(const vec3& u, const vec3& v) {
+    return u.e[0] * v.e[0]
+         + u.e[1] * v.e[1]
+         + u.e[2] * v.e[2];
+}
+
+// Cross product: produces a vector perpendicular to both inputs
+inline vec3 cross(const vec3& u, const vec3& v) {
+    return vec3(u.e[1] * v.e[2] - u.e[2] * v.e[1],
+                u.e[2] * v.e[0] - u.e[0] * v.e[2],
+                u.e[0] * v.e[1] - u.e[1] * v.e[0]);
+}
+
+// Normalize: scale a vector to length 1
+inline vec3 unit_vector(const vec3& v) {
+    return v / v.length();
+}
+```
+
+
+
+The dot product returns a single number measuring how much two vectors point in the same direction. You will use it for lighting calculations and intersection math.
+
+The cross product returns a new vector that is perpendicular to both inputs. It is useful for computing surface normals. The unit_vector() function scales any vector to length 1, which is essential when you need a pure direction without magnitude.
+
+
+
+
+
+Save vec3.h and build the solution again (Build > Build Solution). You should see "Build succeeded" with zero errors.
+
+
+
+Make sure every free function has the inline keyword. Without it, including the header from multiple files causes duplicate symbol errors at link time.
+
+Also confirm that your code sits between the using color = vec3; line and the #endif at the very bottom.
+
+help me fix redefinition errors in my vec3.h
+
+
+
+
+
+Great. Make sure vec3.h is saved before moving on.
+
+
+
+```cpp
+#ifndef VEC3_H
+#define VEC3_H
+
+#include <cmath>
+#include <iostream>
+
+class vec3 {
+  public:
+    double e[3];
+
+    vec3() : e{0,0,0} {}
+    vec3(double e0, double e1, double e2) : e{e0, e1, e2} {}
+
+    double x() const { return e[0]; }
+    double y() const { return e[1]; }
+    double z() const { return e[2]; }
+
+    vec3 operator-() const { return vec3(-e[0], -e[1], -e[2]); }
+    double operator[](int i) const { return e[i]; }
+    double& operator[](int i) { return e[i]; }
+
+    vec3& operator+=(const vec3& v) {
+        e[0] += v.e[0];
+        e[1] += v.e[1];
+        e[2] += v.e[2];
+        return *this;
+    }
+
+    vec3& operator*=(double t) {
+        e[0] *= t;
+        e[1] *= t;
+        e[2] *= t;
+        return *this;
+    }
+
+    vec3& operator/=(double t) {
+        return *this *= 1/t;
+    }
+
+    double length() const {
+        return std::sqrt(length_squared());
+    }
+
+    double length_squared() const {
+        return e[0]*e[0] + e[1]*e[1] + e[2]*e[2];
+    }
+};
+
+using point3 = vec3;
+using color = vec3;
+
+inline std::ostream& operator<<(std::ostream& out, const vec3& v) {
+    return out << v.e[0] << ' ' << v.e[1] << ' ' << v.e[2];
+}
+
+inline vec3 operator+(const vec3& u, const vec3& v) {
+    return vec3(u.e[0] + v.e[0], u.e[1] + v.e[1], u.e[2] + v.e[2]);
+}
+
+inline vec3 operator-(const vec3& u, const vec3& v) {
+    return vec3(u.e[0] - v.e[0], u.e[1] - v.e[1], u.e[2] - v.e[2]);
+}
+
+inline vec3 operator*(const vec3& u, const vec3& v) {
+    return vec3(u.e[0] * v.e[0], u.e[1] * v.e[1], u.e[2] * v.e[2]);
+}
+
+inline vec3 operator*(double t, const vec3& v) {
+    return vec3(t*v.e[0], t*v.e[1], t*v.e[2]);
+}
+
+inline vec3 operator*(const vec3& v, double t) {
+    return t * v;
+}
+
+inline vec3 operator/(const vec3& v, double t) {
+    return (1/t) * v;
+}
+
+inline double dot(const vec3& u, const vec3& v) {
+    return u.e[0] * v.e[0]
+         + u.e[1] * v.e[1]
+         + u.e[2] * v.e[2];
+}
+
+inline vec3 cross(const vec3& u, const vec3& v) {
+    return vec3(u.e[1] * v.e[2] - u.e[2] * v.e[1],
+                u.e[2] * v.e[0] - u.e[0] * v.e[2],
+                u.e[0] * v.e[1] - u.e[1] * v.e[0]);
+}
+
+inline vec3 unit_vector(const vec3& v) {
+    return v / v.length();
+}
+
+#endif
+```
+
+Create color.h and refactor main.cpp
+
+Right now, the color-to-integer conversion logic lives inside your render loop. By extracting it into a write_color() function, you keep the rendering code clean and reusable.
+
+
+
+
+
+Add another header file the same way: click Project > Add New Item, select Header File (.h), name it color.h, and click Add.
+
+
+
+Replace any generated content in color.h with the following code:
+
+```cpp
+#ifndef COLOR_H
+#define COLOR_H
+
+#include "vec3.h"
+#include <iostream>
+
+// Convert a [0,1] color to [0,255] integers and write to stream
+void write_color(std::ostream& out, const color& pixel_color) {
+    auto r = pixel_color.x();
+    auto g = pixel_color.y();
+    auto b = pixel_color.z();
+
+    // Map from 0.0-1.0 range to 0-255 integer range
+    int rbyte = int(255.999 * r);
+    int gbyte = int(255.999 * g);
+    int bbyte = int(255.999 * b);
+
+    out << rbyte << ' ' << gbyte << ' ' << bbyte << '\n';
+}
+
+#endif
+```
+
+
+
+The function takes a color (which is a vec3 with components in the range [0, 1]) and converts each component to an integer between 0 and 255. The multiplier 255.999 ensures that a value of exactly 1.0 maps to 255 without overflow.
+
+
+
+
+
+Save color.h.
+
+
+
+Switch back to main.cpp in Solution Explorer.
+
+
+
+Select all the code in main.cpp (Ctrl+A) and replace it with the following:
+
+```cpp
+#include "vec3.h"
+#include "color.h"
+#include <iostream>
+
+int main() {
+    int image_width = 256;
+    int image_height = 256;
+
+    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+    for (int j = 0; j < image_height; j++) {
+        for (int i = 0; i < image_width; i++) {
+            // Create a color using our vec3 type
+            color pixel_color(double(i) / (image_width - 1),
+                              double(j) / (image_height - 1),
+                              0.0);
+            // Use write_color to handle the float-to-int conversion
+            write_color(std::cout, pixel_color);
+        }
+    }
+}
+```
+
+
+
+The raw double variables and manual int(255.999 * r) conversion are gone. Instead, you create a color object with the RGB components and pass it to write_color(). The output is identical, but the code is cleaner and ready for the ray-tracing logic you will add next.
+
+
+
+
+
+Save main.cpp with Ctrl+S.
+
+
+
+Build the solution (Build > Build Solution). You should see "Build succeeded" with zero errors.
+
+
+
+Open a Command Prompt, navigate to the build output folder (the x64\Debug\ path shown in the Output window), and run:
+
+```bash
+RayTracer.exe > image.ppm
+```
+
+
+
+
+
+Open image.ppm in your PPM viewer. You should see the same 256x256 color gradient from Step 1 (black top-left, red top-right, green bottom-left, yellow bottom-right).
+
+
+
+If the build fails with "cannot open include file", make sure vec3.h and color.h are in the same folder as main.cpp. Visual Studio places new items in the project directory by default.
+
+If the image looks wrong, confirm the render loop still uses image_width = 256 and image_height = 256. The gradient should be identical to Step 1.
+
+help me debug my refactored main.cpp
+
+
+
+
+
+Great. Double check that all three files (vec3.h, color.h, main.cpp) are saved.
+
+
+
+Here is the complete color.h:
+
+```cpp
+#ifndef COLOR_H
+#define COLOR_H
+
+#include "vec3.h"
+#include <iostream>
+
+void write_color(std::ostream& out, const color& pixel_color) {
+    auto r = pixel_color.x();
+    auto g = pixel_color.y();
+    auto b = pixel_color.z();
+
+    int rbyte = int(255.999 * r);
+    int gbyte = int(255.999 * g);
+    int bbyte = int(255.999 * b);
+
+    out << rbyte << ' ' << gbyte << ' ' << bbyte << '\n';
+}
+
+#endif
+```
+
+Here is the complete main.cpp:
+
+```cpp
+#include "vec3.h"
+#include "color.h"
+#include <iostream>
+
+int main() {
+    int image_width = 256;
+    int image_height = 256;
+
+    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+    for (int j = 0; j < image_height; j++) {
+        for (int i = 0; i < image_width; i++) {
+            color pixel_color(double(i) / (image_width - 1),
+                              double(j) / (image_height - 1),
+                              0.0);
+            write_color(std::cout, pixel_color);
+        }
+    }
+}
+```
+
+
+
+
+
+
+
+Your math library is complete. Every vector operation your ray tracer needs is now a single function call away. Next up, you will define a ray class and build a virtual camera that fires rays through each pixel.
+
+
+
+Your gradient image proves the rendering pipeline works, but it has no concept of 3D space. A real renderer needs to cast rays from a camera into a scene and determine what color each pixel should be based on what the ray hits.
+
+In this step, you will create a ray class that represents a parametric line in 3D space. Then you will set up a virtual camera that fires one ray per pixel through a viewport, producing a sky gradient that proves your camera is working.
+
+In this step, get ready to:
+
+
+
+Create a ray class that models the parametric equation P(t) = O + tD.
+
+Set up a virtual camera with a viewport and pixel grid.
+
+Render a sky gradient by blending colors based on ray direction.
+
+
+
+
+
+Create the ray header file
+
+A ray is a line that starts at a point (the origin) and extends infinitely in one direction. The parametric equation P(t) = O + tD lets you find any point along the ray by plugging in a value for t.
+
+
+
+
+
+In Solution Explorer, right-click the RayTracer project.
+
+
+
+Click Add, then click New Item.
+
+
+
+Select Header File (.h), name it ray.h, and click Add.
+
+
+
+Delete any default content in the new file and paste the following code:
+
+```cpp
+#ifndef RAY_H
+#define RAY_H
+
+#include "vec3.h"
+
+class ray {
+  public:
+    // Default constructor
+    ray() {}
+
+    // Construct a ray from an origin point and a direction vector
+    ray(const point3& origin, const vec3& direction) : orig(origin), dir(direction) {}
+
+    // Accessors for origin and direction
+    const point3& origin() const { return orig; }
+    const vec3& direction() const { return dir; }
+
+    // Return the point at parameter t along the ray: P(t) = O + tD
+    point3 at(double t) const {
+        return orig + t * dir;
+    }
+
+  private:
+    point3 orig;
+    vec3 dir;
+};
+
+#endif
+```
+
+
+
+The ray class stores two pieces of data: an origin point and a direction vector. The at(double t) method computes the point along the ray at parameter t using the formula orig + t * dir.
+
+When t is 0, you get the origin. When t is 1, you get a point one direction-length away. Negative t goes behind the camera.
+
+
+
+
+
+Save ray.h.
+
+You will not see a change yet because no code uses this header file. The next chunk connects it to your renderer.
+
+Set up the virtual camera in main.cpp
+
+A virtual camera defines where the viewer sits in 3D space and how pixel coordinates map to ray directions. You need to define the image dimensions, a viewport rectangle in front of the camera, and the spacing between pixels.
+
+
+
+
+
+Open main.cpp and delete all its contents.
+
+
+
+Paste the following code to set up the camera and viewport:
+
+```cpp
+#include "vec3.h"
+#include "color.h"
+#include "ray.h"
+#include <iostream>
+
+int main() {
+    // Image dimensions (16:9 aspect ratio)
+    auto aspect_ratio = 16.0 / 9.0;
+    int image_width = 400;
+    int image_height = int(image_width / aspect_ratio);
+    if (image_height < 1) image_height = 1;
+
+    // Camera positioned at the origin, looking down negative-z
+    auto focal_length = 1.0;
+    auto viewport_height = 2.0;
+    auto viewport_width = viewport_height * (double(image_width) / image_height);
+    auto camera_center = point3(0, 0, 0);
+
+    // Vectors spanning the viewport edges
+    auto viewport_u = vec3(viewport_width, 0, 0);
+    auto viewport_v = vec3(0, -viewport_height, 0);
+
+    // Distance between pixel centers
+    auto pixel_delta_u = viewport_u / image_width;
+    auto pixel_delta_v = viewport_v / image_height;
+
+    // Location of the upper-left pixel
+    auto viewport_upper_left = camera_center
+                             - vec3(0, 0, focal_length)
+                             - viewport_u / 2
+                             - viewport_v / 2;
+    auto pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+}
+```
+
+
+
+The camera sits at the origin (0, 0, 0) and looks down the negative-z axis. The viewport is a rectangle floating one focal length in front of it.
+
+The code computes pixel_delta_u and pixel_delta_v to know how far apart adjacent pixels are in 3D space. Then pixel00_loc is the center of the top-left pixel, offset by half a pixel so rays go through pixel centers rather than corners.
+
+The negative viewport_v means pixel rows go downward (matching screen coordinates where row 0 is the top).
+
+You will not see a change yet because main() does not produce any output. The next chunk adds the color function and render loop.
+
+Implement the sky gradient and render loop
+
+With the camera configured, you need a function that decides what color a ray sees. For now, you will blend between white and blue based on how high or low the ray points, creating a sky gradient.
+
+
+
+
+
+In main.cpp, add the ray_color() function above main(), between the includes and int main():
+
+```cpp
+color ray_color(const ray& r) {
+    // Normalize direction to get a unit vector with y in [-1, 1]
+    vec3 unit_direction = unit_vector(r.direction());
+    // Map y from [-1,1] to [0,1] for blending
+    auto a = 0.5 * (unit_direction.y() + 1.0);
+    // Linear blend: white at bottom, blue at top
+    return (1.0 - a) * color(1.0, 1.0, 1.0) + a * color(0.5, 0.7, 1.0);
+}
+```
+
+
+
+It normalizes the ray direction to a unit vector so the y-component falls between -1 and 1. The formula 0.5 * (y + 1.0) remaps that to the 0-to-1 range.
+
+The linear blend (1-a)*white + a*blue produces pure white when a is 0 (ray pointing down) and sky-blue when a is 1 (ray pointing up).
+
+
+
+
+
+Inside main(), add the render loop after the pixel00_loc line to output the PPM header and cast a ray for each pixel:
+
+```cpp
+    // Render
+    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+    for (int j = 0; j < image_height; j++) {
+        for (int i = 0; i < image_width; i++) {
+            auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+            auto ray_direction = pixel_center - camera_center;
+            ray r(camera_center, ray_direction);
+            color pixel_color = ray_color(r);
+            write_color(std::cout, pixel_color);
+        }
+    }
+```
+
+
+
+For each pixel, it computes the 3D position of that pixel's center on the viewport. It creates a ray from the camera center through that pixel position, then calls ray_color() to determine the color.
+
+The PPM header line P3 tells image viewers this is a text-format color image. The dimensions and max value (255) follow, then the pixel data row by row.
+
+
+
+
+
+Save main.cpp.
+
+
+
+Build the project by clicking Build in the menu bar, then clicking Build Solution.
+
+
+
+Open a Command Prompt and navigate to the build output folder shown in the Output window (the x64\Debug\ folder under your solution directory).
+
+
+
+Run the program with output redirection by running:
+
+```bash
+RayTracer.exe > image.ppm
+```
+
+
+
+
+
+Open image.ppm in an online PPM viewer or IrfanView. You should see a smooth vertical gradient from white at the bottom to sky-blue at the top. The image is now 400x225 pixels.
+
+
+
+
+
+
+
+Check that ray.h is saved and that main.cpp includes #include "ray.h" at the top.
+
+
+
+Make sure ray_color() is placed above main() in main.cpp. C++ requires functions to be declared before they are called.
+
+
+
+Verify that the closing brace of main() is present at the end of the file.
+
+Why isn't my sky gradient rendering correctly?
+
+
+
+
+
+Great. Double check you have saved both ray.h and main.cpp.
+
+
+
+Here is the complete ray.h:
+
+```cpp
+#ifndef RAY_H
+#define RAY_H
+
+#include "vec3.h"
+
+class ray {
+  public:
+    ray() {}
+    ray(const point3& origin, const vec3& direction) : orig(origin), dir(direction) {}
+
+    const point3& origin() const { return orig; }
+    const vec3& direction() const { return dir; }
+
+    point3 at(double t) const {
+        return orig + t * dir;
+    }
+
+  private:
+    point3 orig;
+    vec3 dir;
+};
+
+#endif
+```
+
+Here is the complete main.cpp:
+
+```cpp
+#include "vec3.h"
+#include "color.h"
+#include "ray.h"
+#include <iostream>
+
+color ray_color(const ray& r) {
+    vec3 unit_direction = unit_vector(r.direction());
+    auto a = 0.5 * (unit_direction.y() + 1.0);
+    return (1.0 - a) * color(1.0, 1.0, 1.0) + a * color(0.5, 0.7, 1.0);
+}
+
+int main() {
+    auto aspect_ratio = 16.0 / 9.0;
+    int image_width = 400;
+    int image_height = int(image_width / aspect_ratio);
+    if (image_height < 1) image_height = 1;
+
+    auto focal_length = 1.0;
+    auto viewport_height = 2.0;
+    auto viewport_width = viewport_height * (double(image_width) / image_height);
+    auto camera_center = point3(0, 0, 0);
+
+    auto viewport_u = vec3(viewport_width, 0, 0);
+    auto viewport_v = vec3(0, -viewport_height, 0);
+
+    auto pixel_delta_u = viewport_u / image_width;
+    auto pixel_delta_v = viewport_v / image_height;
+
+    auto viewport_upper_left = camera_center
+                             - vec3(0, 0, focal_length)
+                             - viewport_u / 2
+                             - viewport_v / 2;
+    auto pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+    for (int j = 0; j < image_height; j++) {
+        for (int i = 0; i < image_width; i++) {
+            auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+            auto ray_direction = pixel_center - camera_center;
+            ray r(camera_center, ray_direction);
+            color pixel_color = ray_color(r);
+            write_color(std::cout, pixel_color);
+        }
+    }
+}
+```
+
+
+
+
+
+
+
+Your camera is firing rays into the scene and painting the sky. Next up, you will add a sphere and solve the math for detecting when a ray hits it.
+
+
+
+Your ray tracer can cast rays into the scene, but right now those rays pass through empty space. To render actual objects, you need to answer a fundamental question: does a ray hit a sphere?
+
+In this step, you will implement the quadratic formula to mathematically test whether a ray intersects a sphere. Then you will color each pixel based on the surface normal at the hit point, producing the iconic rainbow-sphere image.
+
+In this step, get ready to:
+
+
+
+Implement the ray-sphere intersection math using the quadratic formula.
+
+Write a hit_sphere() function that returns the closest hit distance.
+
+Color your sphere with surface normals for a 3D shading effect.
+
+
+
+
+
+Understand the ray-sphere intersection math
+
+A sphere is defined by a center point and a radius. A ray hits the sphere when substituting the ray equation into the sphere equation produces a solvable quadratic.
+
+
+
+A point P is on a sphere with center C and radius r when the distance from P to C equals r. Algebraically, that means dot(P-C, P-C) = r*r.
+
+Substitute the ray equation P(t) = O + t*D into the sphere equation and you get a quadratic in t. Compute oc = center - origin, then: a = dot(d,d), h = dot(d,oc), c = dot(oc,oc) - r*r.
+
+The discriminant h*h - a*c tells you if the ray hits. If it is negative, the ray misses entirely. If zero or positive, the ray intersects the sphere at one or two points.
+
+Write the hit_sphere() function
+
+This function takes a sphere center, radius, and ray, then returns the parameter t of the closest intersection. A return value of -1 means no hit.
+
+
+
+
+
+In main.cpp, find the existing ray_color() function.
+
+
+
+Add the following hit_sphere() function directly above ray_color():
+
+```cpp
+double hit_sphere(const point3& center, double radius, const ray& r) {
+    vec3 oc = center - r.origin();
+    auto a = dot(r.direction(), r.direction());
+    auto h = dot(r.direction(), oc);
+    auto c = dot(oc, oc) - radius * radius;
+    auto discriminant = h * h - a * c;
+    if (discriminant < 0)
+        return -1.0;
+    return (h - std::sqrt(discriminant)) / a;
+}
+```
+
+
+
+
+
+
+
+vec3 oc = center - r.origin() computes the vector from the ray origin to the sphere center.
+
+
+
+a, h, and c are the coefficients of the quadratic equation formed by substituting the ray into the sphere equation.
+
+
+
+If the discriminant is negative, no real solutions exist and the ray misses the sphere.
+
+
+
+(h - sqrtd) / a returns the nearest intersection point (the smaller t value, which is the front of the sphere).
+
+💡 Why h instead of b?
+
+Traditional quadratic notation uses b, but the ray tracing community simplifies with h (half-b). This avoids extra multiplications and divisions by 2, making the formula cleaner without changing the result.
+
+Color the sphere with surface normals
+
+The surface normal at a hit point is the direction pointing straight outward from the sphere. You can compute it as the unit vector from the sphere center to the hit point. Mapping normal components from [-1,1] to [0,1] produces a smooth color gradient that reveals the 3D shape.
+
+
+
+
+
+Replace the existing ray_color() function with this updated version that calls hit_sphere() and applies normal-based coloring:
+
+```cpp
+color ray_color(const ray& r) {
+    // Test if the ray hits a sphere at (0,0,-1) with radius 0.5
+    auto t = hit_sphere(point3(0, 0, -1), 0.5, r);
+    if (t > 0.0) {
+        // Compute surface normal and map to color
+        vec3 N = unit_vector(r.at(t) - vec3(0, 0, -1));
+        return 0.5 * color(N.x() + 1, N.y() + 1, N.z() + 1);
+    }
+    // No hit - return sky gradient
+    vec3 unit_direction = unit_vector(r.direction());
+    auto a = 0.5 * (unit_direction.y() + 1.0);
+    return (1.0 - a) * color(1.0, 1.0, 1.0) + a * color(0.5, 0.7, 1.0);
+}
+```
+
+
+
+
+
+
+
+hit_sphere(point3(0, 0, -1), 0.5, r) tests the ray against a sphere centered 1 unit in front of the camera with radius 0.5.
+
+
+
+r.at(t) - vec3(0, 0, -1) gives the vector from the sphere center to the hit point. Normalizing it produces the surface normal N.
+
+
+
+0.5 * color(N.x() + 1, N.y() + 1, N.z() + 1) maps each normal component from the range [-1,1] to [0,1], turning the direction into a visible RGB color.
+
+
+
+If no hit occurs, the function falls through to the sky gradient from the previous step.
+
+
+
+
+
+Save main.cpp.
+
+
+
+Build the project with Build > Build Solution.
+
+
+
+Open a Command Prompt and navigate to your build output folder.
+
+
+
+Run the program with output redirection:
+
+```bash
+RayTracer.exe > image.ppm
+```
+
+
+
+
+
+Open image.ppm in an online PPM viewer or IrfanView. You should see a sphere centered in the frame with smooth color gradients (green on top, red and blue on the sides) against the sky gradient background.
+
+
+
+
+
+
+
+Make sure hit_sphere() is placed above ray_color() in the file. C++ requires functions to be declared before they are called.
+
+
+
+Check that the sphere center is point3(0, 0, -1) with a negative z value. Positive z would place the sphere behind the camera.
+
+
+
+Verify the condition is if (t > 0.0) not if (t > 0). Both work in this case, but ensure the comparison exists.
+
+Help me debug why my sphere isn't rendering.
+
+
+
+
+
+Great. Double check you have saved main.cpp before moving on.
+
+
+
+Here is the full main.cpp at this point:
+
+```cpp
+#include "vec3.h"
+#include "color.h"
+#include "ray.h"
+#include <iostream>
+
+double hit_sphere(const point3& center, double radius, const ray& r) {
+    vec3 oc = center - r.origin();
+    auto a = dot(r.direction(), r.direction());
+    auto h = dot(r.direction(), oc);
+    auto c = dot(oc, oc) - radius * radius;
+    auto discriminant = h * h - a * c;
+    if (discriminant < 0)
+        return -1.0;
+    return (h - std::sqrt(discriminant)) / a;
+}
+
+color ray_color(const ray& r) {
+    auto t = hit_sphere(point3(0, 0, -1), 0.5, r);
+    if (t > 0.0) {
+        vec3 N = unit_vector(r.at(t) - vec3(0, 0, -1));
+        return 0.5 * color(N.x() + 1, N.y() + 1, N.z() + 1);
+    }
+    vec3 unit_direction = unit_vector(r.direction());
+    auto a = 0.5 * (unit_direction.y() + 1.0);
+    return (1.0 - a) * color(1.0, 1.0, 1.0) + a * color(0.5, 0.7, 1.0);
+}
+
+int main() {
+    auto aspect_ratio = 16.0 / 9.0;
+    int image_width = 400;
+    int image_height = int(image_width / aspect_ratio);
+    if (image_height < 1) image_height = 1;
+
+    auto focal_length = 1.0;
+    auto viewport_height = 2.0;
+    auto viewport_width = viewport_height * (double(image_width) / image_height);
+    auto camera_center = point3(0, 0, 0);
+
+    auto viewport_u = vec3(viewport_width, 0, 0);
+    auto viewport_v = vec3(0, -viewport_height, 0);
+
+    auto pixel_delta_u = viewport_u / image_width;
+    auto pixel_delta_v = viewport_v / image_height;
+
+    auto viewport_upper_left = camera_center
+                             - vec3(0, 0, focal_length)
+                             - viewport_u / 2
+                             - viewport_v / 2;
+    auto pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+    for (int j = 0; j < image_height; j++) {
+        for (int i = 0; i < image_width; i++) {
+            auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+            auto ray_direction = pixel_center - camera_center;
+            ray r(camera_center, ray_direction);
+            color pixel_color = ray_color(r);
+            write_color(std::cout, pixel_color);
+        }
+    }
+}
+```
+
+
+
+
+
+
+
+Your ray tracer can now detect geometry and shade it. Next up, you will build a flexible object system using C++ inheritance so you can render multiple spheres and any future shapes without rewriting the intersection logic.
+
+
+
+Your ray tracer can detect one hardcoded sphere, but a real scene needs dozens of objects. Right now, adding a second sphere means duplicating the intersection math and manually comparing t values. That approach breaks down fast.
+
+In this step, you will build a polymorphic object system using C++ inheritance. Any shape that implements a hit() method can be added to your scene, and the renderer will automatically find the closest intersection across all objects.
+
+In this step, get ready to:
+
+
+
+Define an abstract hittable interface with a hit_record struct.
+
+Create a sphere class and a hittable_list to hold multiple objects.
+
+Render a scene with a sphere sitting on a ground plane.
+
+
+
+
+
+Create hittable.h with the abstract interface
+
+Every object in your scene needs to answer one question: did a given ray hit me, and if so, where? The hittable interface defines this contract as a pure virtual function that any shape must implement.
+
+
+
+
+
+In the Solution Explorer, right-click your project name.
+
+
+
+Click Add, then New Item.
+
+
+
+Select Header File (.h), name it hittable.h, and click Add.
+
+
+
+Replace any default content with the following code:
+
+```cpp
+#ifndef HITTABLE_H
+#define HITTABLE_H
+
+#include "ray.h"
+
+class hit_record {
+  public:
+    point3 p;
+    vec3 normal;
+    double t;
+    bool front_face;
+
+    void set_face_normal(const ray& r, const vec3& outward_normal) {
+        front_face = dot(r.direction(), outward_normal) < 0;
+        normal = front_face ? outward_normal : -outward_normal;
+    }
+};
+
+class hittable {
+  public:
+    virtual ~hittable() = default;
+    virtual bool hit(const ray& r, double ray_tmin, double ray_tmax, hit_record& rec) const = 0;
+};
+
+#endif
+```
+
+
+
+The hit_record struct stores everything about a ray-object intersection: the hit point p, the surface normal, the ray parameter t, and whether the ray hit the front or back face.
+
+The set_face_normal() method ensures normals always point against the incoming ray. This matters later for materials that behave differently on inside vs outside surfaces.
+
+The hittable class is abstract. The = 0 makes hit() a pure virtual function. Any shape (sphere, plane, triangle) must provide its own implementation.
+
+💡 Why does hit() take ray_tmin and ray_tmax?
+
+These parameters restrict which intersections count. A hit at t = 0.0001 is valid but t = -3.0 is behind the camera. Using a small positive ray_tmin also prevents a ray from hitting the same surface it just bounced off of (shadow acne).
+
+
+
+
+
+Save hittable.h.
+
+Create sphere.h and hittable_list.h
+
+Now you need a concrete shape that implements the hittable interface, and a container that can hold multiple objects and find the closest hit across all of them.
+
+
+
+
+
+Add another new header file to your project named sphere.h.
+
+
+
+Paste the following code into it:
+
+```cpp
+#ifndef SPHERE_H
+#define SPHERE_H
+
+#include "hittable.h"
+
+class sphere : public hittable {
+  public:
+    sphere(const point3& center, double radius) : center(center), radius(radius) {}
+
+    bool hit(const ray& r, double ray_tmin, double ray_tmax, hit_record& rec) const override {
+        vec3 oc = center - r.origin();
+        auto a = dot(r.direction(), r.direction());
+        auto h = dot(r.direction(), oc);
+        auto c = dot(oc, oc) - radius * radius;
+
+        auto discriminant = h * h - a * c;
+        if (discriminant < 0)
+            return false;
+
+        auto sqrtd = std::sqrt(discriminant);
+        auto root = (h - sqrtd) / a;
+        if (root <= ray_tmin || ray_tmax <= root) {
+            root = (h + sqrtd) / a;
+            if (root <= ray_tmin || ray_tmax <= root)
+                return false;
+        }
+
+        rec.t = root;
+        rec.p = r.at(rec.t);
+        vec3 outward_normal = (rec.p - center) / radius;
+        rec.set_face_normal(r, outward_normal);
+
+        return true;
+    }
+
+  private:
+    point3 center;
+    double radius;
+};
+
+#endif
+```
+
+
+
+This is the same quadratic formula math from your hit_sphere() function, but now packaged inside a class. The sphere stores its own center and radius as private members.
+
+The key improvement is the bounds checking with ray_tmin and ray_tmax. If the closer root falls outside the valid range, it tries the farther root. Only valid hits get recorded.
+
+
+
+
+
+Save sphere.h.
+
+
+
+Add one more header file named hittable_list.h.
+
+
+
+Paste the following code into it:
+
+```cpp
+#ifndef HITTABLE_LIST_H
+#define HITTABLE_LIST_H
+
+#include "hittable.h"
+#include <memory>
+#include <vector>
+
+using std::make_shared;
+using std::shared_ptr;
+
+class hittable_list : public hittable {
+  public:
+    std::vector<shared_ptr<hittable>> objects;
+
+    hittable_list() {}
+    hittable_list(shared_ptr<hittable> object) { add(object); }
+
+    void clear() { objects.clear(); }
+
+    void add(shared_ptr<hittable> object) {
+        objects.push_back(object);
+    }
+
+    bool hit(const ray& r, double ray_tmin, double ray_tmax, hit_record& rec) const override {
+        hit_record temp_rec;
+        bool hit_anything = false;
+        auto closest_so_far = ray_tmax;
+
+        for (const auto& object : objects) {
+            if (object->hit(r, ray_tmin, closest_so_far, temp_rec)) {
+                hit_anything = true;
+                closest_so_far = temp_rec.t;
+                rec = temp_rec;
+            }
+        }
+
+        return hit_anything;
+    }
+};
+
+#endif
+```
+
+
+
+The hittable_list itself is also a hittable. Its hit() method loops through every object and tracks the closest intersection found so far.
+
+The trick is passing closest_so_far as the upper bound for each subsequent test. Once you find a hit at t = 3.0, anything farther than 3.0 is automatically rejected. This ensures you always render the nearest object.
+
+💡 What is shared_ptr?
+
+A shared_ptr is a C++ smart pointer that automatically manages memory. Multiple parts of your code can share ownership of the same object, and it gets deleted only when the last reference goes away. This prevents memory leaks without manual delete calls.
+
+
+
+
+
+Save hittable_list.h.
+
+
+
+If IntelliSense shows errors in sphere.h or hittable_list.h, make sure hittable.h is saved first. Both files depend on it through their #include "hittable.h" line.
+
+Also confirm that all four header files (vec3.h, ray.h, hittable.h, sphere.h) are in the same folder as main.cpp.
+
+Help me fix IntelliSense errors in my hittable header files.
+
+Update main.cpp to use the hittable system
+
+With your object system in place, you can now replace the hardcoded hit_sphere() function with a proper scene that holds multiple objects. You will also add a giant sphere below the scene to act as a ground plane.
+
+
+
+
+
+Open main.cpp and replace the entire file contents with the following:
+
+```cpp
+#include "vec3.h"
+#include "color.h"
+#include "ray.h"
+#include "hittable.h"
+#include "hittable_list.h"
+#include "sphere.h"
+
+#include <iostream>
+#include <limits>
+
+// Represents an infinitely large t value (no hit found)
+const double infinity = std::numeric_limits<double>::infinity();
+
+// Determine pixel color by testing the ray against all objects in the world
+color ray_color(const ray& r, const hittable& world) {
+    hit_record rec;
+    if (world.hit(r, 0.001, infinity, rec)) {
+        // Map the surface normal to a color
+        return 0.5 * (rec.normal + color(1, 1, 1));
+    }
+
+    // No hit: render sky gradient
+    vec3 unit_direction = unit_vector(r.direction());
+    auto a = 0.5 * (unit_direction.y() + 1.0);
+    return (1.0 - a) * color(1.0, 1.0, 1.0) + a * color(0.5, 0.7, 1.0);
+}
+
+int main() {
+    // Image
+    auto aspect_ratio = 16.0 / 9.0;
+    int image_width = 400;
+    int image_height = int(image_width / aspect_ratio);
+    if (image_height < 1) image_height = 1;
+
+    // World - add spheres to the scene
+    hittable_list world;
+    world.add(make_shared<sphere>(point3(0, 0, -1), 0.5));
+    world.add(make_shared<sphere>(point3(0, -100.5, -1), 100));
+
+    // Camera
+    auto focal_length = 1.0;
+    auto viewport_height = 2.0;
+    auto viewport_width = viewport_height * (double(image_width) / image_height);
+    auto camera_center = point3(0, 0, 0);
+
+    auto viewport_u = vec3(viewport_width, 0, 0);
+    auto viewport_v = vec3(0, -viewport_height, 0);
+
+    auto pixel_delta_u = viewport_u / image_width;
+    auto pixel_delta_v = viewport_v / image_height;
+
+    auto viewport_upper_left = camera_center
+                             - vec3(0, 0, focal_length)
+                             - viewport_u / 2
+                             - viewport_v / 2;
+    auto pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+    // Render
+    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+    for (int j = 0; j < image_height; j++) {
+        std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
+        for (int i = 0; i < image_width; i++) {
+            auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+            auto ray_direction = pixel_center - camera_center;
+            ray r(camera_center, ray_direction);
+
+            color pixel_color = ray_color(r, world);
+            write_color(std::cout, pixel_color);
+        }
+    }
+
+    std::clog << "\rDone.                 \n";
+}
+```
+
+
+
+
+
+
+
+The hit_sphere() free function is gone. The sphere class handles its own intersection math now.
+
+
+
+ray_color() takes a const hittable& world parameter. It asks the world to find the closest hit without knowing what shapes exist.
+
+
+
+The minimum t value is 0.001 instead of 0. This prevents floating-point imprecision from causing a ray to hit the same surface it originated from.
+
+
+
+A second sphere at (0, -100.5, -1) with radius 100 acts as a ground plane. Its top surface sits exactly at y = -0.5, touching the bottom of the small sphere.
+
+
+
+Progress reporting via std::clog writes to stderr so it does not pollute your PPM image on stdout.
+
+
+
+
+
+Save main.cpp.
+
+
+
+Build the project with Build > Build Solution.
+
+
+
+Open a Command Prompt, navigate to your build output folder, and run:
+
+```bash
+RayTracer.exe > image.ppm
+```
+
+
+
+
+
+Open image.ppm in your PPM viewer. You should see a small sphere sitting on a large ground plane, both colored by surface normals. The ground appears as a flat greenish surface extending to the horizon, with the sky gradient above.
+
+
+
+Make sure you have all six includes at the top of main.cpp in the correct order. The #include <limits> header is required for std::numeric_limits.
+
+If you see errors about make_shared or shared_ptr, confirm that hittable_list.h has #include <memory> and the using std::make_shared declaration.
+
+Help me fix build errors in my ray tracer after adding the hittable system.
+
+
+
+
+
+Great. Double check you have saved all your files before moving on.
+
+
+
+Here is each file in full. Compare yours against these.
+
+```cpp
+#ifndef HITTABLE_H
+#define HITTABLE_H
+
+#include "ray.h"
+
+class hit_record {
+  public:
+    point3 p;
+    vec3 normal;
+    double t;
+    bool front_face;
+
+    void set_face_normal(const ray& r, const vec3& outward_normal) {
+        front_face = dot(r.direction(), outward_normal) < 0;
+        normal = front_face ? outward_normal : -outward_normal;
+    }
+};
+
+class hittable {
+  public:
+    virtual ~hittable() = default;
+    virtual bool hit(const ray& r, double ray_tmin, double ray_tmax, hit_record& rec) const = 0;
+};
+
+#endif
+```
+
+```cpp
+#ifndef SPHERE_H
+#define SPHERE_H
+
+#include "hittable.h"
+
+class sphere : public hittable {
+  public:
+    sphere(const point3& center, double radius) : center(center), radius(radius) {}
+
+    bool hit(const ray& r, double ray_tmin, double ray_tmax, hit_record& rec) const override {
+        vec3 oc = center - r.origin();
+        auto a = dot(r.direction(), r.direction());
+        auto h = dot(r.direction(), oc);
+        auto c = dot(oc, oc) - radius * radius;
+
+        auto discriminant = h * h - a * c;
+        if (discriminant < 0)
+            return false;
+
+        auto sqrtd = std::sqrt(discriminant);
+        auto root = (h - sqrtd) / a;
+        if (root <= ray_tmin || ray_tmax <= root) {
+            root = (h + sqrtd) / a;
+            if (root <= ray_tmin || ray_tmax <= root)
+                return false;
+        }
+
+        rec.t = root;
+        rec.p = r.at(rec.t);
+        vec3 outward_normal = (rec.p - center) / radius;
+        rec.set_face_normal(r, outward_normal);
+
+        return true;
+    }
+
+  private:
+    point3 center;
+    double radius;
+};
+
+#endif
+```
+
+```cpp
+#ifndef HITTABLE_LIST_H
+#define HITTABLE_LIST_H
+
+#include "hittable.h"
+#include <memory>
+#include <vector>
+
+using std::make_shared;
+using std::shared_ptr;
+
+class hittable_list : public hittable {
+  public:
+    std::vector<shared_ptr<hittable>> objects;
+
+    hittable_list() {}
+    hittable_list(shared_ptr<hittable> object) { add(object); }
+
+    void clear() { objects.clear(); }
+
+    void add(shared_ptr<hittable> object) {
+        objects.push_back(object);
+    }
+
+    bool hit(const ray& r, double ray_tmin, double ray_tmax, hit_record& rec) const override {
+        hit_record temp_rec;
+        bool hit_anything = false;
+        auto closest_so_far = ray_tmax;
+
+        for (const auto& object : objects) {
+            if (object->hit(r, ray_tmin, closest_so_far, temp_rec)) {
+                hit_anything = true;
+                closest_so_far = temp_rec.t;
+                rec = temp_rec;
+            }
+        }
+
+        return hit_anything;
+    }
+};
+
+#endif
+```
+
+```cpp
+#include "vec3.h"
+#include "color.h"
+#include "ray.h"
+#include "hittable.h"
+#include "hittable_list.h"
+#include "sphere.h"
+
+#include <iostream>
+#include <limits>
+
+const double infinity = std::numeric_limits<double>::infinity();
+
+color ray_color(const ray& r, const hittable& world) {
+    hit_record rec;
+    if (world.hit(r, 0.001, infinity, rec)) {
+        return 0.5 * (rec.normal + color(1, 1, 1));
+    }
+
+    vec3 unit_direction = unit_vector(r.direction());
+    auto a = 0.5 * (unit_direction.y() + 1.0);
+    return (1.0 - a) * color(1.0, 1.0, 1.0) + a * color(0.5, 0.7, 1.0);
+}
+
+int main() {
+    // Image
+    auto aspect_ratio = 16.0 / 9.0;
+    int image_width = 400;
+    int image_height = int(image_width / aspect_ratio);
+    if (image_height < 1) image_height = 1;
+
+    // World
+    hittable_list world;
+    world.add(make_shared<sphere>(point3(0, 0, -1), 0.5));
+    world.add(make_shared<sphere>(point3(0, -100.5, -1), 100));
+
+    // Camera
+    auto focal_length = 1.0;
+    auto viewport_height = 2.0;
+    auto viewport_width = viewport_height * (double(image_width) / image_height);
+    auto camera_center = point3(0, 0, 0);
+
+    auto viewport_u = vec3(viewport_width, 0, 0);
+    auto viewport_v = vec3(0, -viewport_height, 0);
+
+    auto pixel_delta_u = viewport_u / image_width;
+    auto pixel_delta_v = viewport_v / image_height;
+
+    auto viewport_upper_left = camera_center
+                             - vec3(0, 0, focal_length)
+                             - viewport_u / 2
+                             - viewport_v / 2;
+    auto pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+    // Render
+    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+    for (int j = 0; j < image_height; j++) {
+        std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
+        for (int i = 0; i < image_width; i++) {
+            auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+            auto ray_direction = pixel_center - camera_center;
+            ray r(camera_center, ray_direction);
+
+            color pixel_color = ray_color(r, world);
+            write_color(std::cout, pixel_color);
+        }
+    }
+
+    std::clog << "\rDone.                 \n";
+}
+```
+
+
+
+
+
+
+
+Your ray tracer now has a modular architecture that can render any number of objects. Adding a new shape is as simple as creating a class that implements hit(). Next up in the Secret Mission, you will add physically-based diffuse lighting to make these spheres look like real matte objects.
+
+
+
+What if your spheres could look like real, physical objects instead of rainbow normal-maps?
+
+In the real world, matte surfaces scatter incoming light in random directions. Each bounce absorbs some energy, which is why shadows form where light has fewer paths to reach. You are going to simulate this by making your rays bounce recursively off surfaces, picking random directions each time, and averaging many samples per pixel to smooth out the noise.
+
+In this secret mission, get ready to:
+
+
+
+Add random number generation and random unit vector functions to vec3.h.
+
+Make ray_color() recursive with diffuse light bouncing.
+
+Add antialiasing with 50 samples per pixel and gamma correction.
+
+Render a photorealistic matte scene with soft shadows.
+
+
+
+A Lambertian surface scatters light equally in all directions from the hit point. The scattered ray's direction is the surface normal plus a random unit vector. This produces the characteristic soft, matte appearance you see on objects like chalk, unpolished wood, or matte paint.
+
+Each bounce absorbs 50% of the light energy (the 0.5 multiplier). After several bounces, the remaining energy approaches zero, which is why shadows appear darker.
+
+Add random number generation to vec3.h
+
+Diffuse shading requires picking random directions for bounced rays. You need a random number generator and a function that produces uniformly distributed random points on a unit sphere.
+
+
+
+
+
+In vec3.h, add #include <random> at the top alongside the other includes.
+
+
+
+After the unit_vector() function (before the #endif), add the following random utility functions:
+
+```cpp
+inline double random_double() {
+    static std::uniform_real_distribution<double> distribution(0.0, 1.0);
+    static std::mt19937 generator;
+    return distribution(generator);
+}
+
+inline double random_double(double min, double max) {
+    return min + (max - min) * random_double();
+}
+
+inline vec3 random_vec3() {
+    return vec3(random_double(), random_double(), random_double());
+}
+
+inline vec3 random_vec3(double min, double max) {
+    return vec3(random_double(min, max), random_double(min, max), random_double(min, max));
+}
+
+inline vec3 random_unit_vector() {
+    while (true) {
+        auto p = random_vec3(-1, 1);
+        auto lensq = p.length_squared();
+        if (1e-160 < lensq && lensq <= 1)
+            return p / std::sqrt(lensq);
+    }
+}
+```
+
+
+
+random_double() returns a random number between 0 and 1 using C++'s std::mt19937 engine and std::uniform_real_distribution.
+
+random_unit_vector() uses rejection sampling: it generates random points inside a cube, discards any that fall outside the unit sphere, then normalizes the result. The 1e-160 lower bound prevents division by near-zero vectors that would produce infinity.
+
+Update color.h for multisampling and gamma correction
+
+When you cast multiple rays per pixel and accumulate their colors, you need to divide by the sample count before outputting. You also need gamma correction because human eyes perceive brightness non-linearly.
+
+
+
+
+
+Replace the entire contents of color.h with the following code:
+
+```cpp
+#ifndef COLOR_H
+#define COLOR_H
+
+#include "vec3.h"
+#include <iostream>
+
+// Clamp a value to the range [min, max]
+inline double clamp(double x, double min, double max) {
+    if (x < min) return min;
+    if (x > max) return max;
+    return x;
+}
+
+void write_color(std::ostream& out, const color& pixel_color, int samples_per_pixel) {
+    auto r = pixel_color.x();
+    auto g = pixel_color.y();
+    auto b = pixel_color.z();
+
+    // Divide accumulated color by number of samples
+    auto scale = 1.0 / samples_per_pixel;
+    r *= scale;
+    g *= scale;
+    b *= scale;
+
+    // Apply gamma 2.0 correction (sqrt)
+    r = std::sqrt(r);
+    g = std::sqrt(g);
+    b = std::sqrt(b);
+
+    // Convert to [0, 255] byte range with clamping
+    int rbyte = int(256 * clamp(r, 0.0, 0.999));
+    int gbyte = int(256 * clamp(g, 0.0, 0.999));
+    int bbyte = int(256 * clamp(b, 0.0, 0.999));
+
+    out << rbyte << ' ' << gbyte << ' ' << bbyte << '\n';
+}
+
+#endif
+```
+
+
+
+Without gamma correction, your image appears too dark. Monitors apply a gamma curve when displaying pixels, so you need to "pre-correct" by raising each color channel to the power of 1/gamma. For gamma 2.0, that is simply std::sqrt().
+
+The clamp() helper prevents out-of-range values from wrapping around and producing visual artifacts.
+
+Make ray_color() recursive and add antialiasing
+
+The core of diffuse shading is recursive ray bouncing. When a ray hits a surface, it bounces in a random direction (the normal plus a random unit vector). Each bounce absorbs half the light. Antialiasing fires multiple rays per pixel at slightly different sub-pixel positions and averages the results.
+
+
+
+
+
+Replace the entire contents of main.cpp with the following code:
+
+```cpp
+#include "vec3.h"
+#include "color.h"
+#include "ray.h"
+#include "hittable.h"
+#include "hittable_list.h"
+#include "sphere.h"
+
+#include <iostream>
+#include <limits>
+
+const double infinity = std::numeric_limits<double>::infinity();
+
+// Recursive ray_color with depth limit for diffuse bouncing
+color ray_color(const ray& r, int depth, const hittable& world) {
+    // Base case: exceeded bounce limit, no more light gathered
+    if (depth <= 0)
+        return color(0, 0, 0);
+
+    hit_record rec;
+    if (world.hit(r, 0.001, infinity, rec)) {
+        // Lambertian scatter: bounce in normal + random direction
+        vec3 direction = rec.normal + random_unit_vector();
+        // Absorb 50% of light on each bounce
+        return 0.5 * ray_color(ray(rec.p, direction), depth - 1, world);
+    }
+
+    // Sky gradient background
+    vec3 unit_direction = unit_vector(r.direction());
+    auto a = 0.5 * (unit_direction.y() + 1.0);
+    return (1.0 - a) * color(1.0, 1.0, 1.0) + a * color(0.5, 0.7, 1.0);
+}
+
+int main() {
+    // Image
+    auto aspect_ratio = 16.0 / 9.0;
+    int image_width = 400;
+    int image_height = int(image_width / aspect_ratio);
+    if (image_height < 1) image_height = 1;
+
+    // Antialiasing and recursion settings
+    int samples_per_pixel = 50;
+    int max_depth = 10;
+
+    // World
+    hittable_list world;
+    world.add(make_shared<sphere>(point3(0, 0, -1), 0.5));
+    world.add(make_shared<sphere>(point3(0, -100.5, -1), 100));
+
+    // Camera
+    auto focal_length = 1.0;
+    auto viewport_height = 2.0;
+    auto viewport_width = viewport_height * (double(image_width) / image_height);
+    auto camera_center = point3(0, 0, 0);
+
+    auto viewport_u = vec3(viewport_width, 0, 0);
+    auto viewport_v = vec3(0, -viewport_height, 0);
+
+    auto pixel_delta_u = viewport_u / image_width;
+    auto pixel_delta_v = viewport_v / image_height;
+
+    auto viewport_upper_left = camera_center
+                             - vec3(0, 0, focal_length)
+                             - viewport_u / 2
+                             - viewport_v / 2;
+    auto pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+    // Render
+    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+    for (int j = 0; j < image_height; j++) {
+        std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
+        for (int i = 0; i < image_width; i++) {
+            // Accumulate color from multiple random samples per pixel
+            color pixel_color(0, 0, 0);
+            for (int sample = 0; sample < samples_per_pixel; sample++) {
+                // Random sub-pixel offset for antialiasing
+                auto offset_x = random_double() - 0.5;
+                auto offset_y = random_double() - 0.5;
+                auto pixel_sample = pixel00_loc
+                                  + ((i + offset_x) * pixel_delta_u)
+                                  + ((j + offset_y) * pixel_delta_v);
+                auto ray_direction = pixel_sample - camera_center;
+                ray r(camera_center, ray_direction);
+                pixel_color += ray_color(r, max_depth, world);
+            }
+            write_color(std::cout, pixel_color, samples_per_pixel);
+        }
+    }
+
+    std::clog << "\rDone.                 \n";
+}
+```
+
+
+
+
+
+
+
+ray_color() now takes an int depth parameter. When depth hits 0, it returns black (no more light). On a hit, it bounces the ray in a random Lambertian direction and recurses.
+
+
+
+The 0.001 minimum t value (instead of 0) fixes shadow acne. Without it, a bounced ray can re-intersect its own surface due to floating-point imprecision.
+
+
+
+The render loop now fires 50 rays per pixel at slightly randomized positions and accumulates their colors. This smooths out jagged edges and noisy shadows.
+
+💡 Why the render takes longer now
+
+With 50 samples per pixel and up to 10 bounces each, you are casting roughly 500x more rays than before. At 400x225 pixels, expect the render to take around 10-30 seconds depending on your hardware. The progress counter in std::clog shows how many scanlines remain.
+
+Build and render your diffuse scene
+
+
+
+
+
+Save all three modified files (vec3.h, color.h, main.cpp).
+
+
+
+Build the project with Build > Build Solution.
+
+
+
+Open a Command Prompt and navigate to your build output folder.
+
+
+
+Run your ray tracer with output redirection:
+
+```bash
+RayTracer.exe > image.ppm
+```
+
+
+
+
+
+Wait for the "Done." message to appear. This render takes noticeably longer than before.
+
+
+
+Open image.ppm in your PPM viewer.
+
+You should see two smooth matte gray spheres with soft shadows where the small sphere meets the ground. The edges are smooth (no jagged staircase pattern) thanks to antialiasing. The scene has a physically plausible look that the normal-colored version never had.
+
+
+
+
+
+
+
+Check that your ray_color() base case returns color(0, 0, 0) only when depth <= 0. If the base case triggers immediately, every pixel is black.
+
+
+
+Make sure you are passing max_depth (set to 10) as the depth argument in the render loop, not 0.
+
+
+
+Verify that write_color() divides by samples_per_pixel before applying sqrt. If you apply sqrt to the unscaled accumulated value, colors overflow.
+
+Help me debug my diffuse ray tracer. My rendered image is completely black.
+
+🙋‍♀️ Image looks too dark or has bright speckles?
+
+
+
+
+
+Too dark usually means gamma correction is missing. Make sure you apply std::sqrt() to each channel after scaling by 1.0 / samples_per_pixel.
+
+
+
+Bright white speckles (shadow acne) appear when the t_min value is 0 instead of 0.001. A bounced ray re-intersects the surface it just left due to floating-point imprecision.
+
+Help me fix visual artifacts in my diffuse ray tracer output.
+
+
+
+
+
+Great work. You have built a physically-based renderer from scratch. Double check that all three files are saved.
+
+
+
+Here is the complete vec3.h with all random functions added:
+
+```cpp
+#ifndef VEC3_H
+#define VEC3_H
+
+#include <cmath>
+#include <iostream>
+#include <random>
+
+class vec3 {
+  public:
+    double e[3];
+
+    vec3() : e{0,0,0} {}
+    vec3(double e0, double e1, double e2) : e{e0, e1, e2} {}
+
+    double x() const { return e[0]; }
+    double y() const { return e[1]; }
+    double z() const { return e[2]; }
+
+    vec3 operator-() const { return vec3(-e[0], -e[1], -e[2]); }
+    double operator[](int i) const { return e[i]; }
+    double& operator[](int i) { return e[i]; }
+
+    vec3& operator+=(const vec3& v) {
+        e[0] += v.e[0];
+        e[1] += v.e[1];
+        e[2] += v.e[2];
+        return *this;
+    }
+
+    vec3& operator*=(double t) {
+        e[0] *= t;
+        e[1] *= t;
+        e[2] *= t;
+        return *this;
+    }
+
+    vec3& operator/=(double t) {
+        return *this *= 1/t;
+    }
+
+    double length() const {
+        return std::sqrt(length_squared());
+    }
+
+    double length_squared() const {
+        return e[0]*e[0] + e[1]*e[1] + e[2]*e[2];
+    }
+};
+
+using point3 = vec3;
+using color = vec3;
+
+inline std::ostream& operator<<(std::ostream& out, const vec3& v) {
+    return out << v.e[0] << ' ' << v.e[1] << ' ' << v.e[2];
+}
+
+inline vec3 operator+(const vec3& u, const vec3& v) {
+    return vec3(u.e[0] + v.e[0], u.e[1] + v.e[1], u.e[2] + v.e[2]);
+}
+
+inline vec3 operator-(const vec3& u, const vec3& v) {
+    return vec3(u.e[0] - v.e[0], u.e[1] - v.e[1], u.e[2] - v.e[2]);
+}
+
+inline vec3 operator*(const vec3& u, const vec3& v) {
+    return vec3(u.e[0] * v.e[0], u.e[1] * v.e[1], u.e[2] * v.e[2]);
+}
+
+inline vec3 operator*(double t, const vec3& v) {
+    return vec3(t*v.e[0], t*v.e[1], t*v.e[2]);
+}
+
+inline vec3 operator*(const vec3& v, double t) {
+    return t * v;
+}
+
+inline vec3 operator/(const vec3& v, double t) {
+    return (1/t) * v;
+}
+
+inline double dot(const vec3& u, const vec3& v) {
+    return u.e[0] * v.e[0]
+         + u.e[1] * v.e[1]
+         + u.e[2] * v.e[2];
+}
+
+inline vec3 cross(const vec3& u, const vec3& v) {
+    return vec3(u.e[1] * v.e[2] - u.e[2] * v.e[1],
+                u.e[2] * v.e[0] - u.e[0] * v.e[2],
+                u.e[0] * v.e[1] - u.e[1] * v.e[0]);
+}
+
+inline vec3 unit_vector(const vec3& v) {
+    return v / v.length();
+}
+
+inline double random_double() {
+    static std::uniform_real_distribution<double> distribution(0.0, 1.0);
+    static std::mt19937 generator;
+    return distribution(generator);
+}
+
+inline double random_double(double min, double max) {
+    return min + (max - min) * random_double();
+}
+
+inline vec3 random_vec3() {
+    return vec3(random_double(), random_double(), random_double());
+}
+
+inline vec3 random_vec3(double min, double max) {
+    return vec3(random_double(min, max), random_double(min, max), random_double(min, max));
+}
+
+inline vec3 random_unit_vector() {
+    while (true) {
+        auto p = random_vec3(-1, 1);
+        auto lensq = p.length_squared();
+        if (1e-160 < lensq && lensq <= 1)
+            return p / std::sqrt(lensq);
+    }
+}
+
+#endif
+```
+
+Here is the complete color.h:
+
+```cpp
+#ifndef COLOR_H
+#define COLOR_H
+
+#include "vec3.h"
+#include <iostream>
+
+inline double clamp(double x, double min, double max) {
+    if (x < min) return min;
+    if (x > max) return max;
+    return x;
+}
+
+void write_color(std::ostream& out, const color& pixel_color, int samples_per_pixel) {
+    auto r = pixel_color.x();
+    auto g = pixel_color.y();
+    auto b = pixel_color.z();
+
+    auto scale = 1.0 / samples_per_pixel;
+    r *= scale;
+    g *= scale;
+    b *= scale;
+
+    r = std::sqrt(r);
+    g = std::sqrt(g);
+    b = std::sqrt(b);
+
+    int rbyte = int(256 * clamp(r, 0.0, 0.999));
+    int gbyte = int(256 * clamp(g, 0.0, 0.999));
+    int bbyte = int(256 * clamp(b, 0.0, 0.999));
+
+    out << rbyte << ' ' << gbyte << ' ' << bbyte << '\n';
+}
+
+#endif
+```
+
+Here is the complete main.cpp:
+
+```cpp
+#include "vec3.h"
+#include "color.h"
+#include "ray.h"
+#include "hittable.h"
+#include "hittable_list.h"
+#include "sphere.h"
+
+#include <iostream>
+#include <limits>
+
+const double infinity = std::numeric_limits<double>::infinity();
+
+color ray_color(const ray& r, int depth, const hittable& world) {
+    if (depth <= 0)
+        return color(0, 0, 0);
+
+    hit_record rec;
+    if (world.hit(r, 0.001, infinity, rec)) {
+        vec3 direction = rec.normal + random_unit_vector();
+        return 0.5 * ray_color(ray(rec.p, direction), depth - 1, world);
+    }
+
+    vec3 unit_direction = unit_vector(r.direction());
+    auto a = 0.5 * (unit_direction.y() + 1.0);
+    return (1.0 - a) * color(1.0, 1.0, 1.0) + a * color(0.5, 0.7, 1.0);
+}
+
+int main() {
+    auto aspect_ratio = 16.0 / 9.0;
+    int image_width = 400;
+    int image_height = int(image_width / aspect_ratio);
+    if (image_height < 1) image_height = 1;
+
+    int samples_per_pixel = 50;
+    int max_depth = 10;
+
+    hittable_list world;
+    world.add(make_shared<sphere>(point3(0, 0, -1), 0.5));
+    world.add(make_shared<sphere>(point3(0, -100.5, -1), 100));
+
+    auto focal_length = 1.0;
+    auto viewport_height = 2.0;
+    auto viewport_width = viewport_height * (double(image_width) / image_height);
+    auto camera_center = point3(0, 0, 0);
+
+    auto viewport_u = vec3(viewport_width, 0, 0);
+    auto viewport_v = vec3(0, -viewport_height, 0);
+
+    auto pixel_delta_u = viewport_u / image_width;
+    auto pixel_delta_v = viewport_v / image_height;
+
+    auto viewport_upper_left = camera_center
+                             - vec3(0, 0, focal_length)
+                             - viewport_u / 2
+                             - viewport_v / 2;
+    auto pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+
+    std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
+
+    for (int j = 0; j < image_height; j++) {
+        std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
+        for (int i = 0; i < image_width; i++) {
+            color pixel_color(0, 0, 0);
+            for (int sample = 0; sample < samples_per_pixel; sample++) {
+                auto offset_x = random_double() - 0.5;
+                auto offset_y = random_double() - 0.5;
+                auto pixel_sample = pixel00_loc
+                                  + ((i + offset_x) * pixel_delta_u)
+                                  + ((j + offset_y) * pixel_delta_v);
+                auto ray_direction = pixel_sample - camera_center;
+                ray r(camera_center, ray_direction);
+                pixel_color += ray_color(r, max_depth, world);
+            }
+            write_color(std::cout, pixel_color, samples_per_pixel);
+        }
+    }
+
+    std::clog << "\rDone.                 \n";
+}
+```
+
+
+
+
+
+
+
+
+
+This project runs entirely locally, so there are no ongoing costs. Decide whether to keep your project files for future experimentation or delete them entirely.
+
+Resources you used:
+
+
+
+RayTracer Visual Studio solution (project folder with all .h and .cpp source files).
+
+Generated image.ppm output files in your build directory.
+
+
+
+
+
+No action needed. Choose this if you want to keep experimenting with your ray tracer. You can add new shapes, materials, or lighting models at any time.
+
+
+
+
+
+Your RayTracer solution stays in your Visual Studio recent projects list for quick access.
+
+
+
+Your rendered image.ppm files remain in the build output folder.
+
+
+
+Since this is a local project with no running processes, there is nothing to pause. Your files stay on disk until you delete them.
+
+
+
+
+
+Close the RayTracer solution in Visual Studio by clicking File, then Close Solution.
+
+
+
+Your project files remain on disk and you can reopen the solution at any time.
+
+
+
+Remove all project files from your machine. This deletes your source code and rendered images permanently.
+
+
+
+
+
+Close the RayTracer solution in Visual Studio by clicking File, then Close Solution.
+
+
+
+Open File Explorer (Windows) and navigate to the folder where you created the RayTracer project.
+
+
+
+Right-click the RayTracer solution folder and select Delete.
+
+
+
+Check your build output folder (x64\Debug\ under the solution directory) for any image.ppm files you created with output redirection. Delete those as well.
+
+
+
+
+
+
+
+
+
+
+
+Nice work! You just built a CPU ray tracer from scratch in C++ with zero external dependencies.
+
+You've learned how to:
+
+
+
+
+
+Build a reusable vec3 math library with dot product, cross product, and normalize operations that form the foundation of all graphics programming.
+
+
+
+Solve ray-sphere intersections using the quadratic formula and render surface normals as color to visualize 3D geometry.
+
+
+
+Create a polymorphic object system using C++ inheritance and virtual functions to render a multi-object 3D scene to a PPM image file.
+
+
+
+Secret Mission: Added physically-based diffuse lighting with recursive ray bouncing, antialiasing, and gamma correction for photorealistic matte shading.
+
+Ready to quiz yourself?
+
